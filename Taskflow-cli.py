@@ -1,56 +1,126 @@
+from datetime import datetime
+
+from models import Task
+from controllers import TaskManager
 
 
-def list_tasks():
-    """Affiche les archives sous forme tabulaire."""
-    header = ("Description", "Priorité", "Echéance", "Statut")
-    tailles = [30, 10, 15, 15]
+def is_valid(date):
+    """Valide une date au format DD/MM/YYYY et vérifie qu'elle est dans le futur."""
+    try:
+        date_fin = datetime.strptime(date, "%d/%m/%Y")
+        date_fin = date_fin.replace(hour=23, minute=59, second=59, microsecond=999999)
+        if date_fin >= datetime.now():
+            return True
+        else:
+            print("L'échéance doit être supérieure à la date actuelle.")
+    except ValueError:
+        print("Format de date invalide. Veuillez entrer une date au format DD/MM/YYYY.")
+    return False
 
-    line_format = '| ' + ''.join([f"%-{v}s| " for v in tailles])
-    horz_line = "-" * (len(line_format % header) - 1)
 
-    print(horz_line)
-    print(line_format % header)
-    print(horz_line)
-
-    for row in rows:
-        last_modified = format_mtime(row[2])
-        name = truncate_string(str(row[0]), tailles[0] - 1)
-        data = (name, str(row[1]), last_modified)
-        print(line_format % data)
-    print(horz_line)
-
-tasks = []
+def display_menu():
+    """Affiche le menu principal."""
+    menu = (
+        "1. Ajouter une tâche\n"
+        "2. Modifier une tâche\n"
+        "3. Supprimer une tâche\n"
+        "4. Lister les tâches (avec filtre)\n"
+        "5. Quitter"
+    )
+    print(menu)
 
 
 def __main__():
-    menu = "1. Ajouter une tâche\n2. Modifier une tâche\n3. Supprimer une tâche\n4. Lister les tâches (avec filtre)\n5. Quitter"
-    print(menu)
-    choice = int(input("Entrez votre choix : "))
-    while choice != 5:
+    task_manager = TaskManager.TaskManager()
+    task_manager.init_tasks()
+
+    while True:
+        display_menu()
+        try:
+            choice = int(input("Entrez votre choix : "))
+        except ValueError:
+            print("Veuillez entrer un nombre valide.")
+            continue
+
+        data = task_manager.get_tasks()
+        last_id = data[-1].get_id() if data else 0
         match choice:
             case 1:
-                description = input("Entrez la description de votre tâche :")
-                priority = input("Entrez la priorité de votre tâche (basse, moyenne, haute) :")
-                due_date = input("Ajouter une date limite à la tâche (format DD/MM/YYYY) :")
-                status = "en cours"
-                task = {
-                    "description": description,
-                    "priority": priority,
-                    "due_date": due_date,
-                    "status": status
-                }
-                tasks.append(task)
-            case 2:
-                pass
-            case 3:
-                pass
-            case 4:
-                pass
-            case _:
-                pass
+                description = input("Entrez la description de votre tâche : ").strip()
+                while description == "":
+                    description = input("Entrez la description de votre tâche : ").strip()
 
-        menu = "1. Ajouter une tâche\n2. Modifier une tâche\n3. Supprimer une tâche\n4. Lister les tâches (avec filtre)\n5. Quitter"
-        print(menu)
+                priority = input("Entrez la priorité de votre tâche (basse, moyenne, haute) : ").strip()
+                while priority not in ["basse", "moyenne", "haute"]:
+                    priority = input("Entrez la priorité de votre tâche (basse, moyenne, haute) : ").strip()
+
+                while True:
+                    due_date = 0
+                    try:
+                        # Demander à l'utilisateur d'entrer une date
+                        due_date = input("Ajouter une date limite à la tâche (format DD/MM/YYYY) : ").strip()
+                        # Essayer de convertir la chaîne en objet datetime
+                        due_date_obj = datetime.strptime(due_date, "%d/%m/%Y")
+                        if is_valid(due_date):
+                            break  # Sort de la boucle si la date est valide
+                    except ValueError or not is_valid(due_date):
+                        # Si une erreur survient, afficher un message et redemander
+                        print("Format de date invalide. Veuillez entrer une date au format DD/MM/YYYY.")
+
+                task = Task.Task(last_id + 1, description, priority, due_date)
+                task_manager.add_task(task)
+                task_manager.save_data()
+            case 2:
+                # Modification d'une tâche
+                if not task_manager.get_tasks():
+                    print("Aucune tâche disponible à modifier.")
+                    continue
+
+                task_manager.list_tasks()
+                try:
+                    id_task = int(input("Entrez le numéro de la tâche à modifier : "))
+                except ValueError:
+                    print("Identifiant invalide.")
+                    continue
+                task = task_manager.find_task_by_id(id_task)
+                if task:
+                    description = input(
+                        f"Entrez la description de votre tâche [{task.get_description()}] : ").strip() or task.get_description()
+                    priority = input(
+                        f"Entrez la priorité (basse, moyenne, haute) [{task.get_priority()}]: ").strip().lower() or task.get_priority()
+                    while priority not in ["basse", "moyenne", "haute"]:
+                        priority = input("Priorité invalide. Réessayez (basse, moyenne, haute) : ").strip().lower()
+                    while True:
+                        due_date = input(
+                            f"Entrez l'échéance (format DD/MM/YYYY) [{task.get_due_date()}]: ").strip() or task.get_due_date()
+                        if is_valid(due_date):
+                            break
+                    status = input(
+                        f"Entrez le statut (en cours, terminée, supprimée) [{task.get_status()}]: ").strip().lower() or task.get_status()
+                    while status not in ["en cours", "terminée", "supprimée"]:
+                        status = input(
+                            "Statut invalide. Réessayez (en cours, terminée, supprimée) : ").strip().lower()
+
+                    task.set_description(description)
+                    task.set_priority(priority)
+                    task.set_due_date(due_date)
+                    task.set_status(status)
+                    task_manager.save_data()
+                    print(f"La tâche {task.get_id()} a été modifiée avec succès.")
+                else:
+                    print("Aucune tâche ne correspond au numéro entrée.")
+            case 3:
+                task_manager.list_tasks()
+                id_task = int(input("Entrez le numéro de la tâche à supprimer : "))
+                task_manager.remove_task(id_task)
+                task_manager.save_data()
+            case 4:
+                task_manager.list_tasks()
+            case 5:
+                print("Au revoir !")
+                break
+            case _:
+                print("Choix invalide. Veuillez réessayer.")
 
 
 if __name__ == "__main__":
