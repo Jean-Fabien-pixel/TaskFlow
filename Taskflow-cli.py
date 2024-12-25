@@ -50,7 +50,7 @@ def __main__():
                 while description == "":
                     description = input("Entrez la description de votre tâche : ").strip()
 
-                priority = input("Entrez la priorité de votre tâche (basse, moyenne, haute) : ").strip()
+                priority = input("Entrez la priorité de votre tâche (basse, moyenne, haute) : ").strip().lower()
                 while priority not in ["basse", "moyenne", "haute"]:
                     priority = input("Entrez la priorité de votre tâche (basse, moyenne, haute) : ").strip()
 
@@ -69,14 +69,13 @@ def __main__():
 
                 task = Task.Task(last_id + 1, description, priority, due_date)
                 task_manager.add_task(task)
+                print(f"Tâche ajoutée : {task.get_description()}")
                 task_manager.save_data()
             case 2:
                 # Modification d'une tâche
                 if not task_manager.get_tasks():
                     print("Aucune tâche disponible à modifier.")
                     continue
-
-                task_manager.list_tasks()
                 try:
                     id_task = int(input("Entrez le numéro de la tâche à modifier : "))
                 except ValueError:
@@ -110,12 +109,35 @@ def __main__():
                 else:
                     print("Aucune tâche ne correspond au numéro entrée.")
             case 3:
-                task_manager.list_tasks()
                 id_task = int(input("Entrez le numéro de la tâche à supprimer : "))
                 task_manager.remove_task(id_task)
                 task_manager.save_data()
             case 4:
-                task_manager.list_tasks()
+                while choice not in ["s", "p", "d", ""]:
+                    choice = input(
+                        "Filtrer par (s)tatut/(p)riorité/(d)ate ou appuyez sur Entrée pour tout afficher : ").strip().lower()
+                while True:
+                    try:
+                        page_size = input(
+                            "Entrez le nombre d'éléments par page (laissez vide pour la liste complète) : ") or len(
+                            task_manager.get_tasks())
+                        page_size = int(page_size)
+                        if page_size <= 0:
+                            print("Le nombre d'éléments par page doit être positif.")
+                            continue
+                        break
+                    except ValueError:
+                        print("Entrez un nombre valide.")
+                if choice == "s":
+                    status = input("Entrez le statut (en cours/terminée/supprimée) : ")
+                    task_manager.list_tasks(filter_by="statut", filter_value=status, page_size=page_size)
+                elif choice == "p":
+                    priority = input("Entrez la priorité (basse/normale/haute) : ")
+                    task_manager.list_tasks(filter_by="priorité", filter_value=priority, page_size=page_size)
+                elif choice == "d":
+                    task_manager.list_tasks(filter_by="date", page_size=page_size)
+                else:
+                    task_manager.list_tasks(page_size=page_size)
             case 5:
                 print("Au revoir !")
                 break
