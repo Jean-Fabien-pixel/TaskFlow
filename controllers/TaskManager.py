@@ -130,16 +130,24 @@ class TaskManager:
             print(horz_line)
 
             # Navigation dans les pages
-            print(f"\nPage {current_page}/{total_pages}")
-            print("\nOptions :")
-            print("n - Page suivante | p - Page précédente | q - Quitter")
-            choice = input("Choisissez une option : ").lower()
+            if total_pages > 1:
+                print("\nOptions :")
+                if current_page < total_pages:
+                    print("n - Page suivante", end=" | ")
+                if current_page > 1:
+                    print("p - Page précédente", end=" | ")
+                print("q - Quitter")
 
-            if choice == "n" and current_page < total_pages:
-                current_page += 1
-            elif choice == "p" and current_page > 1:
-                current_page -= 1
-            elif choice == "q":
-                break
+                choice = input("Choisissez une option : ").lower()
+
+                if choice == "n" and current_page < total_pages:
+                    current_page += 1
+                elif choice == "p" and current_page > 1:
+                    current_page -= 1
+                elif choice == "q":
+                    print("Sortie de la pagination.")
+                    break
+                else:
+                    print("Option invalide.")
             else:
-                print("Option invalide ou fin des pages.")
+                break
