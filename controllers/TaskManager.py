@@ -129,6 +129,7 @@ class TaskManager:
 
             print(horz_line)
 
+            print(f"\nPage {current_page}/{total_pages}")
             # Navigation dans les pages
             if total_pages > 1:
                 print("\nOptions :")
